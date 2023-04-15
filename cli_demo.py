@@ -3,20 +3,24 @@ import platform
 import signal
 from transformers import AutoTokenizer, AutoModel
 
-tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm-6b", trust_remote_code=True)
-model = AutoModel.from_pretrained("THUDM/chatglm-6b", trust_remote_code=True).half().cuda()
+model_complete = 'THUDM/chatglm-6b'  # ~ 13 GB Memory
+model_int4 = 'THUDM/chatglm-6b-int4' # ~ 5.2 GB Memory
+
+tokenizer = AutoTokenizer.from_pretrained(model_int4, trust_remote_code=True)
+model = AutoModel.from_pretrained(model_int4, trust_remote_code=True).half().cuda()
 model = model.eval()
 
 os_name = platform.system()
 clear_command = 'cls' if os_name == 'Windows' else 'clear'
 stop_stream = False
 
+MSG = 'Welcome to the ChatGLM-6B model, enter the content to carry out the conversation, clear to clear the conversation history, stop to terminate the program.'
 
 def build_prompt(history):
-    prompt = "欢迎使用 ChatGLM-6B 模型，输入内容即可进行对话，clear 清空对话历史，stop 终止程序"
+    prompt = MSG
     for query, response in history:
-        prompt += f"\n\n用户：{query}"
-        prompt += f"\n\nChatGLM-6B：{response}"
+        prompt += f"\n\nUser: {query}"
+        prompt += f"\n\nChatGLM-6B: {response}"
     return prompt
 
 
@@ -28,15 +32,15 @@ def signal_handler(signal, frame):
 def main():
     history = []
     global stop_stream
-    print("欢迎使用 ChatGLM-6B 模型，输入内容即可进行对话，clear 清空对话历史，stop 终止程序")
+    print(MSG)
     while True:
-        query = input("\n用户：")
+        query = input("\nUser: ")
         if query.strip() == "stop":
             break
         if query.strip() == "clear":
             history = []
             os.system(clear_command)
-            print("欢迎使用 ChatGLM-6B 模型，输入内容即可进行对话，clear 清空对话历史，stop 终止程序")
+            print(MSG)
             continue
         count = 0
         for response, history in model.stream_chat(tokenizer, query, history=history):
